@@ -50,9 +50,7 @@ impl InputDispatcher {
 }
 
 fn run_input_loop(receiver: Receiver<Message>, tap_action: TapAction) {
-  let mut next_message = receiver.recv().ok();
-
-  while let Some(message) = next_message.take() {
+  while let Ok(message) = receiver.recv() {
     match message.kind {
       MessageType::Move | MessageType::TouchDown => {
         let mut latest = message;
@@ -66,7 +64,7 @@ fn run_input_loop(receiver: Receiver<Message>, tap_action: TapAction) {
               if let Err(err) = move_cursor(latest.x, latest.y) {
                 eprintln!("Input error: {err}");
               }
-              next_message = Some(candidate);
+              handle_non_move(candidate, tap_action);
               break;
             }
             Err(TryRecvError::Empty) => {
@@ -84,11 +82,22 @@ fn run_input_loop(receiver: Receiver<Message>, tap_action: TapAction) {
           }
         }
       }
-      MessageType::TouchUp => {}
-      MessageType::Tap => {
-        if let Err(err) = move_cursor(message.x, message.y).and_then(|_| execute_tap(tap_action)) {
-          eprintln!("Input error: {err}");
-        }
+      _ => handle_non_move(message, tap_action),
+    }
+  }
+}
+
+fn handle_non_move(message: Message, tap_action: TapAction) {
+  match message.kind {
+    MessageType::TouchUp => {}
+    MessageType::Tap => {
+      if let Err(err) = move_cursor(message.x, message.y).and_then(|_| execute_tap(tap_action)) {
+        eprintln!("Input error: {err}");
+      }
+    }
+    MessageType::Move | MessageType::TouchDown => {
+      if let Err(err) = move_cursor(message.x, message.y) {
+        eprintln!("Input error: {err}");
       }
     }
   }
