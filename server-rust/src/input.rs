@@ -105,11 +105,44 @@ fn handle_non_move(message: Message, tap_action: TapAction) {
 
 #[cfg(windows)]
 fn move_cursor(x: i32, y: i32) -> Result<()> {
-  use windows_sys::Win32::UI::WindowsAndMessaging::SetCursorPos;
+  use std::mem::size_of;
+  use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
+    SendInput, INPUT, INPUT_0, INPUT_MOUSE, MOUSEEVENTF_ABSOLUTE, MOUSEEVENTF_MOVE,
+    MOUSEEVENTF_VIRTUALDESK, MOUSEINPUT,
+  };
+  use windows_sys::Win32::UI::WindowsAndMessaging::{
+    GetSystemMetrics, SM_CXVIRTUALSCREEN, SM_CYVIRTUALSCREEN, SM_XVIRTUALSCREEN, SM_YVIRTUALSCREEN,
+  };
 
-  let ok = unsafe { SetCursorPos(x, y) };
-  if ok == 0 {
-    Err(anyhow!("SetCursorPos failed"))
+  let virtual_x = unsafe { GetSystemMetrics(SM_XVIRTUALSCREEN) };
+  let virtual_y = unsafe { GetSystemMetrics(SM_YVIRTUALSCREEN) };
+  let virtual_width = unsafe { GetSystemMetrics(SM_CXVIRTUALSCREEN) };
+  let virtual_height = unsafe { GetSystemMetrics(SM_CYVIRTUALSCREEN) };
+
+  if virtual_width <= 0 || virtual_height <= 0 {
+    return Err(anyhow!("Could not read virtual screen bounds"));
+  }
+
+  let absolute_x = ((x - virtual_x) * 65535 / (virtual_width - 1)).clamp(0, 65535);
+  let absolute_y = ((y - virtual_y) * 65535 / (virtual_height - 1)).clamp(0, 65535);
+
+  let mut input = INPUT {
+    r#type: INPUT_MOUSE,
+    Anonymous: INPUT_0 {
+      mi: MOUSEINPUT {
+        dx: absolute_x,
+        dy: absolute_y,
+        mouseData: 0,
+        dwFlags: MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK,
+        time: 0,
+        dwExtraInfo: 0,
+      },
+    },
+  };
+
+  let sent = unsafe { SendInput(1, &mut input, size_of::<INPUT>() as i32) };
+  if sent != 1 {
+    Err(anyhow!("SendInput mouse move failed"))
   } else {
     Ok(())
   }
