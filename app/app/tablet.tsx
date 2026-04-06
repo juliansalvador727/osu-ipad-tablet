@@ -7,14 +7,22 @@ import { useSettings } from "../src/hooks/useSettings";
 import { useWebSocket } from "../src/hooks/useWebSocket";
 import { ActiveArea } from "../src/types/settings";
 
+interface SurfaceSize {
+  width: number;
+  height: number;
+}
+
 export default function TabletScreen() {
   const { settings, loading } = useSettings();
   const { wsRef, status, target, error, connect, disconnect } = useWebSocket();
-  const [screenSize, setScreenSize] = useState(() => Dimensions.get("window"));
+  const [surfaceSize, setSurfaceSize] = useState<SurfaceSize>(() => {
+    const window = Dimensions.get("window");
+    return { width: window.width, height: window.height };
+  });
 
   useEffect(() => {
     const sub = Dimensions.addEventListener("change", ({ window }) => {
-      setScreenSize(window);
+      setSurfaceSize({ width: window.width, height: window.height });
     });
     return () => sub.remove();
   }, []);
@@ -33,8 +41,8 @@ export default function TabletScreen() {
   const activeArea: ActiveArea = {
     x: settings.activeArea.x,
     y: settings.activeArea.y,
-    width: settings.activeArea.width || screenSize.width,
-    height: settings.activeArea.height || screenSize.height,
+    width: settings.activeArea.width || surfaceSize.width,
+    height: settings.activeArea.height || surfaceSize.height,
   };
 
   return (
@@ -45,11 +53,12 @@ export default function TabletScreen() {
         activeArea={activeArea}
         monitorWidth={settings.monitorWidth}
         monitorHeight={settings.monitorHeight}
+        onSurfaceLayout={(width, height) => setSurfaceSize({ width, height })}
       />
       <ActiveAreaOverlay
         activeArea={activeArea}
-        screenWidth={screenSize.width}
-        screenHeight={screenSize.height}
+        screenWidth={surfaceSize.width}
+        screenHeight={surfaceSize.height}
       />
       <ConnectionStatus status={status} target={target} error={error} />
     </View>

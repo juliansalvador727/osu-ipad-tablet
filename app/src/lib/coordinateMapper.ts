@@ -12,6 +12,9 @@ export function mapToMonitor(
   monitorWidth: number,
   monitorHeight: number
 ): MappedPosition | null {
+  const maxX = Math.max(0, monitorWidth - 1);
+  const maxY = Math.max(0, monitorHeight - 1);
+
   // Check if touch is inside active area
   if (
     touchX < activeArea.x ||
@@ -25,8 +28,8 @@ export function mapToMonitor(
   const normalizedX = (touchX - activeArea.x) / activeArea.width;
   const normalizedY = (touchY - activeArea.y) / activeArea.height;
 
-  const x = Math.max(0, Math.min(monitorWidth, Math.round(normalizedX * monitorWidth)));
-  const y = Math.max(0, Math.min(monitorHeight, Math.round(normalizedY * monitorHeight)));
+  const x = Math.max(0, Math.min(maxX, Math.round(normalizedX * maxX)));
+  const y = Math.max(0, Math.min(maxY, Math.round(normalizedY * maxY)));
 
   return { x, y };
 }
