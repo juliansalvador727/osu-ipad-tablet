@@ -5,6 +5,9 @@ export type TapAction = "key_z" | "key_x" | "mouse_left";
 
 let tapAction: TapAction = "key_z";
 let verbose = false;
+let actionQueue: Promise<void> = Promise.resolve();
+let pendingMove: Point | null = null;
+let moveTaskQueued = false;
 
 export function configure(opts: { tapAction?: TapAction; verbose?: boolean }) {
   if (opts.tapAction) tapAction = opts.tapAction;
@@ -14,12 +17,12 @@ export function configure(opts: { tapAction?: TapAction; verbose?: boolean }) {
 export function handleMessage(msg: Message): void {
   switch (msg.type) {
     case MessageType.MOVE:
-      mouse.setPosition(new Point(msg.x, msg.y)).catch(logError);
+      queueMove(msg.x, msg.y);
       if (verbose) console.log(`MOVE ${msg.x},${msg.y}`);
       break;
 
     case MessageType.TOUCH_DOWN:
-      mouse.setPosition(new Point(msg.x, msg.y)).catch(logError);
+      queueMove(msg.x, msg.y);
       if (verbose) console.log(`DOWN ${msg.x},${msg.y}`);
       break;
 
@@ -28,11 +31,40 @@ export function handleMessage(msg: Message): void {
       break;
 
     case MessageType.TAP:
-      mouse.setPosition(new Point(msg.x, msg.y)).catch(logError);
-      executeTap();
+      queueTap(msg.x, msg.y);
       if (verbose) console.log(`TAP ${msg.x},${msg.y}`);
       break;
   }
+}
+
+function queueMove(x: number, y: number): void {
+  pendingMove = new Point(x, y);
+
+  if (moveTaskQueued) {
+    return;
+  }
+
+  moveTaskQueued = true;
+  actionQueue = actionQueue.then(flushMoves).catch(logError);
+}
+
+async function flushMoves(): Promise<void> {
+  while (pendingMove) {
+    const point = pendingMove;
+    pendingMove = null;
+    await mouse.setPosition(point);
+  }
+
+  moveTaskQueued = false;
+}
+
+function queueTap(x: number, y: number): void {
+  actionQueue = actionQueue
+    .then(async () => {
+      await mouse.setPosition(new Point(x, y));
+      await executeTap();
+    })
+    .catch(logError);
 }
 
 async function executeTap(): Promise<void> {
