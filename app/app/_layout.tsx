@@ -13,6 +13,7 @@ export default function RootLayout() {
       >
         <Stack.Screen name="index" options={{ title: "osu! tablet" }} />
         <Stack.Screen name="settings" options={{ title: "Settings" }} />
+        <Stack.Screen name="calibrate" options={{ title: "Calibration" }} />
         <Stack.Screen name="tablet" options={{ headerShown: false }} />
       </Stack>
     </SettingsProvider>

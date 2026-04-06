@@ -1,13 +1,14 @@
 import { useRef, useCallback } from "react";
 import { GestureResponderEvent, LayoutChangeEvent, StyleSheet, View } from "react-native";
 import { MessageType } from "../types/protocol";
-import { ActiveArea } from "../types/settings";
+import { ActiveArea, CalibrationSettings } from "../types/settings";
 import { encode } from "../lib/protocol";
 import { mapToMonitor } from "../lib/coordinateMapper";
 
 interface Props {
   wsRef: React.MutableRefObject<WebSocket | null>;
   activeArea: ActiveArea;
+  calibration: CalibrationSettings;
   monitorWidth: number;
   monitorHeight: number;
   onSurfaceLayout?: (width: number, height: number) => void;
@@ -19,12 +20,14 @@ const TAP_SLOP_PX = 12;
 export function TouchSurface({
   wsRef,
   activeArea,
+  calibration,
   monitorWidth,
   monitorHeight,
   onSurfaceLayout,
 }: Props) {
-  const settingsRef = useRef({ activeArea, monitorWidth, monitorHeight });
-  settingsRef.current = { activeArea, monitorWidth, monitorHeight };
+  const settingsRef = useRef({ activeArea, calibration, monitorWidth, monitorHeight });
+  settingsRef.current = { activeArea, calibration, monitorWidth, monitorHeight };
+  const surfaceSizeRef = useRef({ width: 1, height: 1 });
   const touchStart = useRef(0);
   const touchOrigin = useRef({ x: 0, y: 0 });
   const lastTouch = useRef({ x: 0, y: 0 });
@@ -43,8 +46,18 @@ export function TouchSurface({
 
   const mapAndSend = useCallback(
     (type: MessageType, touchX: number, touchY: number) => {
-      const { activeArea, monitorWidth, monitorHeight } = settingsRef.current;
-      const pos = mapToMonitor(touchX, touchY, activeArea, monitorWidth, monitorHeight);
+      const { activeArea, calibration, monitorWidth, monitorHeight } = settingsRef.current;
+      const { width, height } = surfaceSizeRef.current;
+      const pos = mapToMonitor(
+        touchX,
+        touchY,
+        width,
+        height,
+        activeArea,
+        calibration,
+        monitorWidth,
+        monitorHeight
+      );
       if (pos) {
         send(type, pos.x, pos.y);
       }
@@ -128,6 +141,7 @@ export function TouchSurface({
 
   const handleLayout = (event: LayoutChangeEvent) => {
     const { width, height } = event.nativeEvent.layout;
+    surfaceSizeRef.current = { width, height };
     onSurfaceLayout?.(width, height);
   };
 

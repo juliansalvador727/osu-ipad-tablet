@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSettings } from "../src/hooks/useSettings";
+import { defaultCalibration } from "../src/lib/calibration";
 import { AppSettings, TapAction } from "../src/types/settings";
 
 const TAP_OPTIONS: { label: string; value: TapAction }[] = [
@@ -57,6 +58,10 @@ export default function SettingsScreen() {
     setForm((prev) =>
       prev ? { ...prev, activeArea: { x: 0, y: 0, width: 0, height: 0 } } : prev
     );
+  };
+
+  const resetCalibration = () => {
+    setForm((prev) => (prev ? { ...prev, calibration: defaultCalibration() } : prev));
   };
 
   const screen = Dimensions.get("window");
@@ -163,6 +168,27 @@ export default function SettingsScreen() {
         <Text style={styles.linkText}>Reset to full screen</Text>
       </Pressable>
 
+      <Text style={styles.section}>Calibration</Text>
+      <Text style={styles.calibrationText}>
+        {form.calibration.enabled
+          ? "Calibration is enabled."
+          : "Calibration is not set. Run calibration to improve touch accuracy."}
+      </Text>
+      <View style={styles.actionsRow}>
+        <Pressable
+          style={[styles.actionBtn, styles.actionBtnPrimary]}
+          onPress={() => router.push("/calibrate")}
+        >
+          <Text style={styles.actionBtnText}>Run Calibration</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.actionBtn, styles.actionBtnSecondary]}
+          onPress={resetCalibration}
+        >
+          <Text style={styles.actionBtnText}>Reset</Text>
+        </Pressable>
+      </View>
+
       <Text style={styles.section}>Tap Action</Text>
       <View style={styles.row}>
         {TAP_OPTIONS.map((opt) => (
@@ -254,6 +280,31 @@ const styles = StyleSheet.create({
   linkText: {
     color: "#74b9ff",
     fontSize: 14,
+  },
+  calibrationText: {
+    color: "#c7c7d1",
+    fontSize: 14,
+  },
+  actionsRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 12,
+  },
+  actionBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  actionBtnPrimary: {
+    backgroundColor: "#e84393",
+  },
+  actionBtnSecondary: {
+    backgroundColor: "#2d3436",
+  },
+  actionBtnText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
   },
   chip: {
     backgroundColor: "#16213e",

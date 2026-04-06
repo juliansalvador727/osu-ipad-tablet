@@ -9,7 +9,18 @@ export async function loadSettings(): Promise<AppSettings> {
 
   try {
     const parsed = JSON.parse(raw);
-    return { ...DEFAULT_SETTINGS, ...parsed };
+    return {
+      ...DEFAULT_SETTINGS,
+      ...parsed,
+      activeArea: {
+        ...DEFAULT_SETTINGS.activeArea,
+        ...(parsed?.activeArea ?? {}),
+      },
+      calibration: {
+        ...DEFAULT_SETTINGS.calibration,
+        ...(parsed?.calibration ?? {}),
+      },
+    };
   } catch {
     return { ...DEFAULT_SETTINGS };
   }

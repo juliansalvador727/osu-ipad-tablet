@@ -51,6 +51,7 @@ export default function TabletScreen() {
       <TouchSurface
         wsRef={wsRef}
         activeArea={activeArea}
+        calibration={settings.calibration}
         monitorWidth={settings.monitorWidth}
         monitorHeight={settings.monitorHeight}
         onSurfaceLayout={(width, height) => setSurfaceSize({ width, height })}
